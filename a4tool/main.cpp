@@ -8,6 +8,7 @@
 #include "control_a4.h"
 
 #define LITLE_SLEEP   250000
+#define ONLY_RESULT	true
 
 
 typedef int (*func)(a4_device *dev, int argc, char *argv[]);
@@ -22,6 +23,7 @@ int sig_func(a4_device *dev, int argc, char *argv[]);
 int prof_func(a4_device *dev, int argc, char *argv[]);
 int dump_func(a4_device *dev, int argc, char *argv[]);
 int multifunc_func(a4_device *dev, int argc, char *argv[]);
+int infofunc_func(a4_device *dev, int argc, char *argv[]);
 
 
 struct funcs
@@ -73,8 +75,8 @@ static funcs functions[] =
     },
     {
         "bat",
-        "",
-        NULL,
+        "[skip]",
+        "You can use [skip] to hide disconnected devices",
         bat_func
     },
     {
@@ -94,6 +96,12 @@ static funcs functions[] =
         "",
         "switch multifunctional button",
         multifunc_func
+    },    
+	{
+        "info",
+        "",
+        "show all info",
+        infofunc_func
     },
     {
         NULL,
@@ -129,8 +137,10 @@ int prof_func(a4_device *dev, int argc, char *argv[])
                 fprintf(stderr, "IO Error\n");
                 return EXIT_FAILURE;
             }
-
-            printf("Current profile: %d\n", prof+1);
+            if (ONLY_RESULT) 
+                printf(" %d\n", prof+1);
+            else 
+                printf("Current profile: %d\n", prof+1);
         }
         else if (strcmp(argv[0],"set") == 0)
         {
@@ -183,7 +193,10 @@ int prof_func(a4_device *dev, int argc, char *argv[])
 
 int sig_func(a4_device *dev, int argc, char *argv[])
 {
-    printf("Signal level: %d%%\n", (int)((255.0 - (float)a4_rf_get_signal_level(dev)) / 2.55) );
+    if (ONLY_RESULT) 
+        printf("%d%%\n", (int)((255.0 - (float)a4_rf_get_signal_level(dev)) / 2.55) );    
+    else
+        printf("Signal level: %d%%\n", (int)((255.0 - (float)a4_rf_get_signal_level(dev)) / 2.55) );
 
     return 0;
 }
@@ -219,15 +232,31 @@ int dump_func(a4_device *dev, int argc, char *argv[])
 
 int bat_func(a4_device *dev, int argc, char *argv[])
 {
+	bool skip_off = false;
+	if (argc > 0)
+    {
+        if (strcmp(argv[0],"skip") == 0)
+        {
+            skip_off = true;
+        }
+	}
     if (a4_device_mouse_count(dev) > 0)
-        printf("Mouse bat: %d%%\n",a4_power_mouse_get(dev));
+        if (ONLY_RESULT)
+           printf("%d%%\n",a4_power_mouse_get(dev));
+        else
+           printf("Mouse bat: %d%%\n",a4_power_mouse_get(dev));
     else
-        printf("No mouses found.\n");
+		if (!skip_off)
+	        printf("No mouses found.\n");
 
     if (a4_device_keybd_count(dev) > 0)
-        printf("Keyboard bat: %d%%\n",a4_power_keybd_get(dev));
+        if (ONLY_RESULT)
+            printf("%d%%\n",a4_power_keybd_get(dev));
+        else
+            printf("Keyboard bat: %d%%\n",a4_power_keybd_get(dev));
     else
-        printf("No keyboards found.\n");
+		if (!skip_off)
+       		printf("No keyboards found.\n");
 
     return 0;
 }
@@ -246,8 +275,10 @@ int mrr_func(a4_device *dev, int argc, char *argv[])
                 fprintf(stderr, "IO Error\n");
                 return EXIT_FAILURE;
             }
-
-            printf("Current MRR: %dHz\n", mrr);
+            if (ONLY_RESULT)
+                printf("%dHz\n", mrr);
+            else
+                printf("Current MRR: %dHz\n", mrr);
 
         }
         else if (strcmp(argv[0],"set") == 0)
@@ -458,8 +489,10 @@ int channel_func(a4_device *dev, int argc, char *argv[])
                 fprintf(stderr, "IO Error\n");
                 return EXIT_FAILURE;
             }
-
-            printf("Channel: %d", chn.channel);
+            if (ONLY_RESULT)
+                printf("%d", chn.channel);
+            else
+                printf("Channel: %d", chn.channel);
 
             if (chn.type == A4_CHAN_MANUAL)
                 printf(" manual\n");
@@ -694,7 +727,17 @@ int pair_func(a4_device *dev, int argc, char *argv[])
     return 0;
 }
 
-
+int infofunc_func(a4_device *dev, int argc, char *argv[])
+{
+	argv[0] = (char *)"get";
+    channel_func(dev, 1, argv);
+    prof_func(dev, 1, argv);
+    mrr_func(dev, 1, argv);
+	argv[0] = (char *)"skip";
+    bat_func(dev, 1, argv);
+    sig_func(dev, 1, argv);
+    return 0;
+}
 
 
 
