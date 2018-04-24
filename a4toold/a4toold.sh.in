@@ -30,7 +30,7 @@ battery_check() { # $1 device name
     echo `a4tool siglevel | tr -d '[%,a-z,A-Z,:, ]'` > $work_dir/siglevel &
 }
 
-. /etc/a4toold.conf || exec echo Config not exist
+. @SHARE_DIR@/a4toold.conf || exec echo Config not exist
 
 for n in Keyboard Mouse; do
     mkdir -p $work_dir/$n/
@@ -59,7 +59,7 @@ notify(){ # $1 - name of the device (Mouse | Keyboard)
             NC=`cat $work_dir/$1/NC_$val`  # NC - notify counts
             if [[ $NC -le $NC_max ]]; then
                 echo $[$NC+1] > $work_dir/$1/NC_$val &
-                notify-send -i /usr/share/a4tool/$1.png "$1 battery level ${BL}% less than: ${val}%" &
+                notify-send -i @SHARE_DIR@/$1.png "$1 battery level ${BL}% less than: ${val}%" &
                 break
             fi
         else
